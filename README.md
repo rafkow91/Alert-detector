@@ -8,6 +8,11 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
+* Install requirements (*for example in Ubuntu*)
+```
+pip install -r requirements.txt
+```
+
 * Create file **.env** with config of FTP connection (*example is in **.env.default***)
 
 * Open in your browser testing website - file **index.html** from folder **web**
