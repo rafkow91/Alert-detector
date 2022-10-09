@@ -1,41 +1,40 @@
-from time import sleep
-from pynput.mouse import Controller, Button
-from pyautogui import center, screenshot, locateCenterOnScreen, locateOnScreen, locateAllOnScreen
-from os import path, remove
-import pytesseract
-from json import dump, load
-
-from ftplib import FTP
-from dotenv import dotenv_values
+""" All controllers for app Alert-detect """
 from datetime import datetime
+from ftplib import FTP
+from json import dump, load
+from os import path, remove
+from time import sleep
+
+from dotenv import dotenv_values
+from pyautogui import center, screenshot, locateCenterOnScreen, locateOnScreen, locateAllOnScreen, click
+import pytesseract
+
 
 
 class WebsiteClicker():
-    def __init__(self) -> None:
-        self.targets_dir = 'targets'
-        self.check_image_path = path.join(self.targets_dir, 'check.png')
-        self.close_image_path = path.join(self.targets_dir, 'close.png')
-        self.exit_image_path = path.join(self.targets_dir, 'exit.png')
-        self.pop_up_window_image_path = path.join(self.targets_dir + '/pop-up-window.png')
-        self.screenshot_name = 'screenshot.png'
-        self.report_screen_name = 'report.png'
-        self.mouse = Controller()
-        self.reports = []
-        self.reports_images_path = path.join('web', 'img', 'penguins')
-        self.reports_types = [
-            'island',
-            'lunch_break',
-            'man_outside',
-            'no_report',
-            'pirates'
-        ]
+    """
+    app click on screen, read and save active reports
 
-    def _click_button(self, position) -> None:
-        try:
-            self.mouse.position = position
-            self.mouse.click(Button.left, 1)
-        except TypeError:
-            pass
+    Returns:
+        - files (json type) for each one type of report
+    """
+
+    targets_dir = 'targets'
+    check_image_path = path.join(targets_dir, 'check.png')
+    close_image_path = path.join(targets_dir, 'close.png')
+    exit_image_path = path.join(targets_dir, 'exit.png')
+    pop_up_window_image_path = path.join(targets_dir + '/pop-up-window.png')
+    screenshot_name = 'screenshot.png'
+    report_screen_name = 'report.png'
+    reports = []
+    reports_images_path = path.join('web', 'img', 'penguins')
+    reports_types = [
+        'island',
+        'lunch_break',
+        'man_outside',
+        'no_report',
+        'pirates'
+    ]
 
     def _read_screen(self) -> dict:
         to_cut = (locateOnScreen(self.pop_up_window_image_path, confidence=0.5))
@@ -44,18 +43,28 @@ class WebsiteClicker():
         remove(self.report_screen_name)
         return report_text
 
-    def _save_to_JSON(self, filename: str = 'test', dict_to_save: dict = {}) -> None:
+    def _save_to_json(self, filename: str = 'test', dict_to_save: dict = {}) -> None:
         context = []
         try:
-            with open(f'{filename}.json', mode='r+') as input_file:
+            with open(f'{filename}.json', mode='r+', encoding='utf8') as input_file:
                 context = load(input_file)
         except FileNotFoundError:
             pass
+
         context.append(dict_to_save)
-        with open(f'{filename}.json', mode='w') as output_file:
+        with open(f'{filename}.json', mode='w', encoding='utf8') as output_file:
             dump(context, output_file)
 
     def run(self) -> None:
+        """
+        method to start app
+        
+        Steps:
+        - take screenshot
+        - check localisation button 'Sprawdź'
+        - open reports, get type (from image), save details (type, reported_by, date) and save to json-file -> in for-loop
+        """
+
         screenshot(self.screenshot_name)
 
         check_localisations = [center(box) for box in locateAllOnScreen(
@@ -64,8 +73,10 @@ class WebsiteClicker():
         remove(self.screenshot_name)
         for check_button in check_localisations:
             report = {}
-            self._click_button(check_button)
+
+            click(check_button)
             sleep(.4)
+            
             try:
                 close_button_position = locateCenterOnScreen(self.close_image_path, confidence=0.95)
             except TypeError:
@@ -93,21 +104,34 @@ class WebsiteClicker():
                     report_content[report_content.index('dnia')+2:report_content.index('dnia')+6])
             except ValueError:
                 exit_button_position = locateCenterOnScreen(self.exit_image_path, confidence=0.95)
-                self._click_button(exit_button_position)
+                click(exit_button_position)
                 continue
 
             sleep(.4)
-            self._click_button(close_button_position)
+            click(close_button_position)
             sleep(.4)
 
-            self._save_to_JSON(report['type'], report)
+            self._save_to_json(report['type'], report)
 
 
 class FtpUploader:
+    """ Class to upload files on ftp-server """
     config = dotenv_values()
     dir_name = 'Alert-detect'
 
     def run(self, list_of_files: list = []):
+        """
+        method to start upload
+        
+        Steps:
+        - connect to FTP server (config data must be added to .env file)
+        - check if folder 'Alert-detect' is exist, if not create it
+        - check if folder with today's date is exist, if not create it
+        - copy files from list to folder
+
+        Keyword Arguments:
+            list_of_files -- names of files to upload, for example ['file1.txt', 'file2.py'] (default: {[]})
+        """
         today = datetime.now().strftime('%Y-%m-%d')
 
         with FTP(self.config['FTP_HOST'], self.config['FTP_USER'], self.config['FTP_PASSWORD']) as ftp:
