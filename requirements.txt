@@ -2,5 +2,4 @@ pyautogui
 Pillow
 opencv-python
 pytesseract
-pynput
 python-dotenv
