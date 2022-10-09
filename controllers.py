@@ -73,10 +73,9 @@ class WebsiteClicker():
         remove(self.screenshot_name)
         for check_button in check_localisations:
             report = {}
-
+            
             click(check_button)
             sleep(.4)
-            
             try:
                 close_button_position = locateCenterOnScreen(self.close_image_path, confidence=0.95)
             except TypeError:
