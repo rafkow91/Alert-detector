@@ -3,3 +3,4 @@ Pillow
 opencv-python
 pytesseract
 pynput
+python-dotenv

@@ -1,10 +1,13 @@
-from multiprocessing import context
 from time import sleep
 from pynput.mouse import Controller, Button
 from pyautogui import center, screenshot, locateCenterOnScreen, locateOnScreen, locateAllOnScreen
 from os import path, remove
 import pytesseract
 from json import dump, load
+
+from ftplib import FTP
+from dotenv import dotenv_values
+from datetime import datetime
 
 
 class WebsiteClicker():
@@ -98,3 +101,28 @@ class WebsiteClicker():
             sleep(.4)
 
             self._save_to_JSON(report['type'], report)
+
+
+class FtpUploader:
+    config = dotenv_values()
+    dir_name = 'Alert-detect'
+
+    def run(self, list_of_files: list = []):
+        today = datetime.now().strftime('%Y-%m-%d')
+
+        with FTP(self.config['FTP_HOST'], self.config['FTP_USER'], self.config['FTP_PASSWORD']) as ftp:
+
+            if self.dir_name not in ftp.nlst():
+                ftp.mkd(self.dir_name)
+            ftp.cwd(self.dir_name)
+
+            if today not in ftp.nlst():
+                ftp.mkd(today)
+            ftp.cwd(today)
+
+            for filename in list_of_files:
+                try:
+                    with open(filename, mode='rb') as to_upload:
+                        ftp.storbinary(f'STOR {filename}', to_upload)
+                except FileNotFoundError:
+                    continue
