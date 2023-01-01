@@ -6,14 +6,20 @@ from os import path, remove
 from time import sleep
 
 from dotenv import dotenv_values
-from pyautogui import center, screenshot, locateCenterOnScreen, locateOnScreen, locateAllOnScreen, click
+from pyautogui import (
+    center,
+    screenshot,
+    locateCenterOnScreen,
+    locateOnScreen,
+    locateAllOnScreen,
+    click,
+)
 import pytesseract
-
 
 
 class WebsiteClicker():
     """
-    app click on screen, read and save active reports
+    App click on screen, read and save active reports
 
     Returns:
         - files (json type) for each one type of report
@@ -36,14 +42,18 @@ class WebsiteClicker():
         'pirates'
     ]
 
-    def _read_screen(self) -> dict:
+    def _read_screen(self):
         to_cut = (locateOnScreen(self.pop_up_window_image_path, confidence=0.5))
         screenshot(self.report_screen_name, region=to_cut)
         report_text = pytesseract.image_to_string(self.report_screen_name)
         remove(self.report_screen_name)
         return report_text
 
-    def _save_to_json(self, filename: str = 'test', dict_to_save: dict = {}) -> None:
+    @staticmethod
+    def _save_to_json(filename: str = 'test', dict_to_save: dict = None) -> None:
+        if dict_to_save is None:
+            dict_to_save = {}
+
         context = []
         try:
             with open(f'{filename}.json', mode='r+', encoding='utf8') as input_file:
@@ -57,12 +67,13 @@ class WebsiteClicker():
 
     def run(self) -> None:
         """
-        method to start app
-        
+        Method to start app
+
         Steps:
         - take screenshot
         - check localisation button 'Sprawdź'
-        - open reports, get type (from image), save details (type, reported_by, date) and save to json-file -> in for-loop
+        - open reports, get type (from image), save details (type, reported_by, date)
+            and save to json-file -> in for-loop
         """
 
         screenshot(self.screenshot_name)
@@ -73,7 +84,7 @@ class WebsiteClicker():
         remove(self.screenshot_name)
         for check_button in check_localisations:
             report = {}
-            
+
             click(check_button)
             sleep(.4)
             try:
@@ -98,9 +109,11 @@ class WebsiteClicker():
 
             try:
                 report['reports'] = ' '.join(
-                    report_content[report_content.index('Raportuje' or 'aportuje')+1:report_content.index('dnia')])
+                    report_content[report_content.index('Raportuje' or 'aportuje')
+                                   + 1:report_content.index('dnia')])
                 report['date'] = ' '.join(
-                    report_content[report_content.index('dnia')+2:report_content.index('dnia')+6])
+                    report_content[report_content.index('dnia')
+                                   + 2:report_content.index('dnia') + 6])
             except ValueError:
                 exit_button_position = locateCenterOnScreen(self.exit_image_path, confidence=0.95)
                 click(exit_button_position)
@@ -118,22 +131,28 @@ class FtpUploader:
     config = dotenv_values()
     dir_name = 'Alert-detect'
 
-    def run(self, list_of_files: list = []):
+    def run(self, list_of_files=None):
         """
-        method to start upload
-        
+        Method to start upload
+
         Steps:
         - connect to FTP server (config data must be added to .env file)
-        - check if folder 'Alert-detect' is exist, if not create it
-        - check if folder with today's date is exist, if not create it
+        - check if folder 'Alert-detect' is existed, if not create it
+        - check if folder with today's date is existed, if not create it
         - copy files from list to folder
 
         Keyword Arguments:
-            list_of_files -- names of files to upload, for example ['file1.txt', 'file2.py'] (default: {[]})
+            list_of_files -- names of files to upload,
+                for example ['file1.txt', 'file2.py'] (default: {[]})
         """
+        if list_of_files is None:
+            list_of_files = []
+
         today = datetime.now().strftime('%Y-%m-%d')
 
-        with FTP(self.config['FTP_HOST'], self.config['FTP_USER'], self.config['FTP_PASSWORD']) as ftp:
+        with FTP(self.config['FTP_HOST'],
+                 self.config['FTP_USER'],
+                 self.config['FTP_PASSWORD']) as ftp:
 
             if self.dir_name not in ftp.nlst():
                 ftp.mkd(self.dir_name)

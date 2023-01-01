@@ -132,3 +132,4 @@ dmypy.json
 # My folders
 _notes
 *.json
+.idea
